@@ -22,7 +22,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     boolean existsByEmail(String email);
     
-    @Query("SELECT u FROM User u JOIN FETCH u.roles WHERE u.username = :username AND u.deletedAt IS NULL")
+    @Query("SELECT u FROM User u  WHERE u.username = :username")
     Optional<User> findByUsernameWithRoles(@Param("username") String username);
     
     @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL AND " +

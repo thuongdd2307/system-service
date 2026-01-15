@@ -6,8 +6,10 @@ import com.example.commonserviceofficial.security.JwtTokenProvider;
 import com.example.systemserviceofficial.system.dto.request.LoginRequest;
 import com.example.systemserviceofficial.system.dto.request.RegisterRequest;
 import com.example.systemserviceofficial.system.dto.response.LoginResponse;
+import com.example.systemserviceofficial.system.entity.Role;
 import com.example.systemserviceofficial.system.entity.User;
 import com.example.systemserviceofficial.system.enums.UserStatus;
+import com.example.systemserviceofficial.system.repository.RoleRepository;
 import com.example.systemserviceofficial.system.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +19,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,7 +35,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final TokenBlacklistService tokenBlacklistService;
     private final RefreshTokenService refreshTokenService;
-    
+    private final RoleRepository roleRepository;
+
     @Value("${app.security.max-failed-login-attempts:5}")
     private int maxFailedAttempts;
     
@@ -40,13 +46,15 @@ public class AuthService {
     @Transactional
     public LoginResponse login(LoginRequest request, String ipAddress) {
         // Find user
-        User user = userRepository.findByUsernameWithRoles(request.getUsername())
-            .orElseThrow(() -> new BusinessException(
-                "INVALID_CREDENTIALS",
-                "Tên đăng nhập hoặc mật khẩu không đúng"
-            ));
-        
+        Optional<User> userOptional = userRepository.findByUsernameWithRoles(request.getUsername());
+        if (userOptional.isEmpty()) {
+            throw new BusinessException(
+                    "INVALID_CREDENTIALS",
+                    "Tên đăng nhập hoặc mật khẩu không đúng"
+            );
+        }
         // Check if account is locked
+        User user = userOptional.get();
         if (user.getLockedUntil() != null && 
             user.getLockedUntil().isAfter(LocalDateTime.now())) {
             throw new BusinessException(
@@ -81,7 +89,7 @@ public class AuthService {
         
         // Generate tokens
         List<String> roleCodes = user.getRoles().stream()
-            .map(role -> role.getCode())
+            .map(Role::getCode)
             .collect(Collectors.toList());
         
         String accessToken = jwtTokenProvider.generateToken(
@@ -218,12 +226,27 @@ public class AuthService {
         user.setPhone(request.getPhone());
         user.setStatus(UserStatus.ACTIVE);
         user.setFailedLoginAttempts(0);
+
+        // Build user_role
+        setPermissionToUser(user);
         
         userRepository.save(user);
         
         log.info("New user registered: {}", user.getUsername());
     }
-    
+
+    private void setPermissionToUser(User user) {
+        Optional<Role> roleOptional = roleRepository.findByCode("ROLE_USER");
+        if (roleOptional.isPresent()) {
+            Role role = roleOptional.get();
+            Set<Role> permissions = new HashSet<>();
+            permissions.add(role);
+            user.setRoles(permissions);
+        }else {
+            throw new BusinessException("SERVER_ERROR","Hệ thống gặp sự cố. Vui lòng thử lại sau");
+        }
+    }
+
     private void handleFailedLogin(User user) {
         int attempts = user.getFailedLoginAttempts() + 1;
         user.setFailedLoginAttempts(attempts);

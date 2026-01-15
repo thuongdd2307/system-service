@@ -5,13 +5,13 @@ import com.example.systemserviceofficial.system.entity.TokenBlacklist;
 import com.example.systemserviceofficial.system.repository.TokenBlacklistRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -19,10 +19,10 @@ import java.util.concurrent.TimeUnit;
 public class TokenBlacklistService {
     
     private final TokenBlacklistRepository tokenBlacklistRepository;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final CacheManager cacheManager;
     private final JwtTokenProvider jwtTokenProvider;
     
-    private static final String BLACKLIST_PREFIX = "token:blacklist:";
+    private static final String BLACKLIST_CACHE = "tokens";
     
     @Transactional
     public void blacklistToken(String token, String reason) {
@@ -45,25 +45,23 @@ public class TokenBlacklistService {
         blacklist.setExpiresAt(expiresAt);
         tokenBlacklistRepository.save(blacklist);
         
-        // Save to Redis cache
-        long ttl = expirationDate.getTime() - System.currentTimeMillis();
-        if (ttl > 0) {
-            redisTemplate.opsForValue().set(
-                BLACKLIST_PREFIX + token,
-                true,
-                ttl,
-                TimeUnit.MILLISECONDS
-            );
+        // Save to cache
+        Cache cache = cacheManager.getCache(BLACKLIST_CACHE);
+        if (cache != null) {
+            cache.put("blacklist:" + token, true);
         }
         
         log.info("Token blacklisted: reason={}", reason);
     }
     
     public boolean isBlacklisted(String token) {
-        // Check Redis first
-        Boolean cached = (Boolean) redisTemplate.opsForValue().get(BLACKLIST_PREFIX + token);
-        if (Boolean.TRUE.equals(cached)) {
-            return true;
+        // Check cache first
+        Cache cache = cacheManager.getCache(BLACKLIST_CACHE);
+        if (cache != null) {
+            Boolean cached = cache.get("blacklist:" + token, Boolean.class);
+            if (Boolean.TRUE.equals(cached)) {
+                return true;
+            }
         }
         
         // Check database
