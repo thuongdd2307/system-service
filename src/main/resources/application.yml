@@ -21,7 +21,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
@@ -32,8 +32,31 @@ spring:
         order_inserts: true
         order_updates: true
 
+  # Disable auto-configuration for testing
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+
   flyway:
     enabled: false
+
+  # ===================== MAIL CONFIGURATION =====================
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    from-name: ${MAIL_FROM_NAME:HDDT System}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 3000
+          writetimeout: 5000
 
 
   jackson:
@@ -73,6 +96,8 @@ common:
 
 # ===================== APPLICATION CONFIG =====================
 app:
+  base-url: ${APP_BASE_URL:http://localhost:8081}
+  
   security:
     max-failed-login-attempts: 5
     account-lock-duration-minutes: 30
@@ -93,6 +118,15 @@ app:
     cleanup-enabled: true
     cleanup-cron: "0 0 2 * * ?"
     expired-token-retention-days: 7
+
+  # Email notification settings
+  notification:
+    email:
+      enabled: ${EMAIL_NOTIFICATION_ENABLED:true}
+      welcome-enabled: ${WELCOME_EMAIL_ENABLED:true}
+      login-notification-enabled: ${LOGIN_NOTIFICATION_ENABLED:false}
+      password-reset-enabled: ${PASSWORD_RESET_EMAIL_ENABLED:true}
+      password-changed-enabled: ${PASSWORD_CHANGED_EMAIL_ENABLED:true}
 
 # ===================== SERVER =====================
 server:

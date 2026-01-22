@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chào mừng đến với HDDT System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .welcome-message {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        .user-info h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .info-item {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+        .info-value {
+            color: #333;
+        }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            margin: 20px 0;
+            font-weight: 600;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .features {
+            margin: 30px 0;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: white;
+            font-weight: bold;
+        }
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .social-links {
+            margin: 20px 0;
+        }
+        .social-links a {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        @media only screen and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .header, .content, .footer {
+                padding: 20px;
+            }
+            .info-item {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Chào mừng đến với HDDT System!</h1>
+        </div>
+        
+        <div class="content">
+            <div class="welcome-message">
+                <strong>Xin chào <span th:text="${userName}">User</span>!</strong>
+            </div>
+            
+            <p>Cảm ơn bạn đã đăng ký tài khoản tại hệ thống HDDT. Chúng tôi rất vui mừng được chào đón bạn gia nhập cộng đồng của chúng tôi!</p>
+            
+            <div class="user-info">
+                <h3>📋 Thông tin tài khoản</h3>
+                <div class="info-item">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value" th:text="${userEmail}">user@example.com</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Mã người dùng:</span>
+                    <span class="info-value" th:text="${userId}">USER001</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Ngày đăng ký:</span>
+                    <span class="info-value" th:text="${registrationDate}">2026-01-22</span>
+                </div>
+            </div>
+            
+            <p>Để bắt đầu sử dụng hệ thống, vui lòng nhấn vào nút bên dưới:</p>
+            
+            <div style="text-align: center;">
+                <a th:href="${loginUrl}" class="button">🚀 Đăng nhập ngay</a>
+            </div>
+            
+            <div class="features">
+                <h3>✨ Tính năng nổi bật</h3>
+                <div class="feature-item">
+                    <div class="feature-icon">🔐</div>
+                    <div>
+                        <strong>Bảo mật cao</strong><br>
+                        Hệ thống xác thực 2 lớp và mã hóa dữ liệu
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    <div>
+                        <strong>Báo cáo chi tiết</strong><br>
+                        Theo dõi và phân tích dữ liệu real-time
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🌐</div>
+                    <div>
+                        <strong>Truy cập mọi lúc</strong><br>
+                        Hỗ trợ đa nền tảng và thiết bị
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">🎯</div>
+                    <div>
+                        <strong>Hỗ trợ 24/7</strong><br>
+                        Đội ngũ kỹ thuật sẵn sàng hỗ trợ
+                    </div>
+                </div>
+            </div>
+            
+            <p><strong>🆘 Cần hỗ trợ?</strong></p>
+            <p>Nếu bạn có bất kỳ câu hỏi nào, đừng ngần ngại liên hệ với chúng tôi:</p>
+            <ul>
+                <li>📧 Email: <a th:href="'mailto:' + ${supportEmail}" th:text="${supportEmail}">support@hddt.com</a></li>
+                <li>📞 Hotline: 1900-xxxx</li>
+                <li>💬 Live Chat: Trên website chính thức</li>
+            </ul>
+            
+            <p style="margin-top: 30px;">
+                Một lần nữa, chào mừng bạn đến với HDDT System! Chúng tôi hy vọng bạn sẽ có những trải nghiệm tuyệt vời.
+            </p>
+            
+            <p>Trân trọng,<br>
+            <strong>Đội ngũ HDDT System</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>HDDT System</strong></p>
+            <p>© <span th:text="${year}">2026</span> HDDT Company. All rights reserved.</p>
+            
+            <div class="social-links">
+                <a href="#">Facebook</a> |
+                <a href="#">LinkedIn</a> |
+                <a href="#">Twitter</a>
+            </div>
+            
+            <p style="font-size: 12px; color: #bdc3c7; margin-top: 20px;">
+                Đây là email tự động, vui lòng không reply trực tiếp.<br>
+                Nếu bạn không đăng ký tài khoản này, vui lòng bỏ qua email này.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

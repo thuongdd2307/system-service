@@ -55,6 +55,12 @@ public class User {
     @Column(name = "locked_until")
     private LocalDateTime lockedUntil;
     
+    @Column(name = "reset_token")
+    private String resetToken;
+    
+    @Column(name = "reset_token_expiry")
+    private LocalDateTime resetTokenExpiry;
+    
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "sys_user_role",

@@ -3,6 +3,7 @@ package com.example.systemserviceofficial.system.service;
 import com.example.commonserviceofficial.exception.BusinessException;
 import com.example.commonserviceofficial.security.JwtClaims;
 import com.example.commonserviceofficial.security.JwtTokenProvider;
+import com.example.systemserviceofficial.notification.service.SystemEmailService;
 import com.example.systemserviceofficial.system.dto.request.LoginRequest;
 import com.example.systemserviceofficial.system.dto.request.RegisterRequest;
 import com.example.systemserviceofficial.system.dto.response.LoginResponse;
@@ -23,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -36,6 +38,7 @@ public class AuthService {
     private final TokenBlacklistService tokenBlacklistService;
     private final RefreshTokenService refreshTokenService;
     private final RoleRepository roleRepository;
+    private final SystemEmailService systemEmailService;
 
     @Value("${app.security.max-failed-login-attempts:5}")
     private int maxFailedAttempts;
@@ -44,7 +47,7 @@ public class AuthService {
     private int lockDurationMinutes;
     
     @Transactional
-    public LoginResponse login(LoginRequest request, String ipAddress) {
+    public LoginResponse login(LoginRequest request, String ipAddress, String userAgent) {
         // Find user
         Optional<User> userOptional = userRepository.findByUsernameWithRoles(request.getUsername());
         if (userOptional.isEmpty()) {
@@ -106,6 +109,14 @@ public class AuthService {
             refreshToken,
             user.getId(),
             accessToken
+        );
+        
+        // Send login notification email (async)
+        systemEmailService.sendLoginNotificationEmail(
+            user.getEmail(),
+            user.getFullName(),
+            ipAddress,
+            userAgent
         );
         
         log.info("User logged in successfully: {}", user.getUsername());
@@ -230,9 +241,114 @@ public class AuthService {
         // Build user_role
         setPermissionToUser(user);
         
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        
+        // Send welcome email (async)
+        systemEmailService.sendWelcomeEmail(
+            savedUser.getEmail(),
+            savedUser.getFullName(),
+            savedUser.getId().toString()
+        );
         
         log.info("New user registered: {}", user.getUsername());
+    }
+
+    /**
+     * Forgot password - Gửi email reset password
+     */
+    @Transactional
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new BusinessException(
+                "USER_NOT_FOUND",
+                "Email không tồn tại trong hệ thống"
+            ));
+
+        // Generate reset token
+        String resetToken = UUID.randomUUID().toString();
+        
+        // Save reset token (you might want to create a PasswordResetToken entity)
+        user.setResetToken(resetToken);
+        user.setResetTokenExpiry(LocalDateTime.now().plusMinutes(30)); // 30 minutes
+        userRepository.save(user);
+
+        // Send password reset email (async)
+        systemEmailService.sendPasswordResetEmail(
+            user.getEmail(),
+            user.getFullName(),
+            resetToken
+        );
+
+        log.info("Password reset email sent to: {}", email);
+    }
+
+    /**
+     * Reset password với token
+     */
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetToken(token)
+            .orElseThrow(() -> new BusinessException(
+                "INVALID_RESET_TOKEN",
+                "Token reset password không hợp lệ"
+            ));
+
+        // Check token expiry
+        if (user.getResetTokenExpiry() == null || 
+            user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new BusinessException(
+                "RESET_TOKEN_EXPIRED",
+                "Token reset password đã hết hạn"
+            );
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+        user.setFailedLoginAttempts(0); // Reset failed attempts
+        user.setLockedUntil(null); // Unlock account if locked
+        userRepository.save(user);
+
+        // Send password changed notification email (async)
+        systemEmailService.sendPasswordChangedEmail(
+            user.getEmail(),
+            user.getFullName()
+        );
+
+        log.info("Password reset successfully for user: {}", user.getUsername());
+    }
+
+    /**
+     * Change password (khi user đã đăng nhập)
+     */
+    @Transactional
+    public void changePassword(String username, String oldPassword, String newPassword) {
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new BusinessException(
+                "USER_NOT_FOUND",
+                "Người dùng không tồn tại"
+            ));
+
+        // Verify old password
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException(
+                "INVALID_OLD_PASSWORD",
+                "Mật khẩu cũ không đúng"
+            );
+        }
+
+        // Update password
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Send password changed notification email (async)
+        systemEmailService.sendPasswordChangedEmail(
+            user.getEmail(),
+            user.getFullName()
+        );
+
+        log.info("Password changed successfully for user: {}", username);
     }
 
     private void setPermissionToUser(User user) {
